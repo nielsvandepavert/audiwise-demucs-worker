@@ -1,18 +1,11 @@
-FROM runpod/base:0.6.2-cuda12.2.0
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-RUN pip install --no-cache-dir \
-    demucs==4.0.1 \
-    requests \
-    runpod
+RUN pip install --no-cache-dir demucs==4.0.1 requests runpod
 
-# Pre-download the htdemucs model so it's baked into the image (faster cold starts)
 RUN python -c "import demucs.pretrained; demucs.pretrained.get_model('htdemucs')"
 
-# Copy handler
 COPY handler.py /handler.py
 
 CMD ["python", "/handler.py"]

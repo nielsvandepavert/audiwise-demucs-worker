@@ -31,7 +31,8 @@ def upload_to_r2(local_path: str, stem_name: str) -> str:
         region_name="auto",
     )
     bucket = os.environ["BUCKET_NAME"]
-    key = f"stems/{uuid.uuid4()}/{stem_name}.wav"
+    ext = Path(local_path).suffix  # .mp3 or .wav
+    key = f"stems/{uuid.uuid4()}/{stem_name}{ext}"
 
     s3.upload_file(local_path, bucket, key)
 
@@ -59,7 +60,7 @@ def run_demucs(input_path: str, output_dir: str, model: str = "htdemucs") -> dic
         "python", "-m", "demucs",
         "--name", model,
         "--out", output_dir,
-        "--mp3" if os.environ.get("OUTPUT_MP3") else "--float32",
+        "--mp3",
         input_path,
     ]
     subprocess.run(cmd, check=True, capture_output=True, text=True)

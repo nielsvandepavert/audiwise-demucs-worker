@@ -9,13 +9,35 @@ import os
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 
 # Prevent aiohttp from using brotli (causes decode errors with RunPod API)
 sys.modules["brotli"] = None  # type: ignore[assignment]
 
+import boto3
+from botocore.config import Config
 import runpod
-from runpod.serverless.utils.rp_upload import upload_file_to_bucket
+
+
+def upload_to_r2(local_path: str, stem_name: str) -> str:
+    """Upload a file to Cloudflare R2 and return the public URL."""
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=os.environ["BUCKET_ENDPOINT_URL"],
+        aws_access_key_id=os.environ["BUCKET_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["BUCKET_SECRET_ACCESS_KEY"],
+        config=Config(signature_version="s3v4"),
+        region_name="auto",
+    )
+    bucket = os.environ["BUCKET_NAME"]
+    key = f"stems/{uuid.uuid4()}/{stem_name}.wav"
+
+    s3.upload_file(local_path, bucket, key)
+
+    # Return the R2 URL
+    endpoint = os.environ["BUCKET_ENDPOINT_URL"].rstrip("/")
+    return f"{endpoint}/{bucket}/{key}"
 
 
 def download_audio(url: str, output_path: str) -> None:
@@ -74,12 +96,11 @@ def handler(event: dict) -> dict:
         except subprocess.CalledProcessError as e:
             return {"error": f"Demucs failed: {e.stderr[:200] if e.stderr else str(e)[:200]}"}
 
-        # Upload stems to configured bucket and collect URLs
+        # Upload stems to R2 and collect URLs
         stem_urls = {}
         for stem_name, local_path in stem_paths.items():
             try:
-                file_name = f"{stem_name}.wav"
-                url = upload_file_to_bucket(file_name, local_path)
+                url = upload_to_r2(local_path, stem_name)
                 stem_urls[stem_name] = url
             except Exception as e:
                 return {"error": f"Failed to upload {stem_name}: {str(e)[:200]}"}

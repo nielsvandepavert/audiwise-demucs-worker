@@ -78,7 +78,8 @@ def handler(event: dict) -> dict:
         stem_urls = {}
         for stem_name, local_path in stem_paths.items():
             try:
-                url = upload_file_to_bucket(local_path)
+                file_name = f"{stem_name}.wav"
+                url = upload_file_to_bucket(file_name, local_path)
                 stem_urls[stem_name] = url
             except Exception as e:
                 return {"error": f"Failed to upload {stem_name}: {str(e)[:200]}"}

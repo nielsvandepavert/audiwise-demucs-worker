@@ -7,8 +7,12 @@ Output: { "stems": { "drums": "<url>", "bass": "<url>", "vocals": "<url>", "othe
 
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
+
+# Prevent aiohttp from using brotli (causes decode errors with RunPod API)
+sys.modules["brotli"] = None  # type: ignore[assignment]
 
 import runpod
 from runpod.serverless.utils.rp_upload import upload_file_to_bucket

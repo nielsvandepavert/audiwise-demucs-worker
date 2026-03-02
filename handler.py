@@ -35,9 +35,13 @@ def upload_to_r2(local_path: str, stem_name: str) -> str:
 
     s3.upload_file(local_path, bucket, key)
 
-    # Return the R2 URL
-    endpoint = os.environ["BUCKET_ENDPOINT_URL"].rstrip("/")
-    return f"{endpoint}/{bucket}/{key}"
+    # Return a presigned URL (valid for 1 hour)
+    url = s3.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": bucket, "Key": key},
+        ExpiresIn=3600,
+    )
+    return url
 
 
 def download_audio(url: str, output_path: str) -> None:
